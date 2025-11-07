@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestion Magasin – Tab 3</title>
+  <meta name="theme-color" content="#20c997" />
+  <!-- Manifest statique pour version hébergée -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <style>
+    :root{
+      --bg:#0b1220; /* deep navy */
+      --panel:#0f1a2b; /* card */
+      --muted:#9fb0c9;
+      --text:#f2f5f9;
+      --accent:#20c997; /* herbes */
+      --accent-2:#f59e0b; /* turmeric */
+      --danger:#ef4444; /* chili */
+      --warn:#f59e0b; 
+      --border:#1e2a3a;
+      --badge:#143b2a; /* feuille */
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:radial-gradient(1200px 800px at 10% 0%, #0e1626 0%, var(--bg) 40%),
+                 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120"><g fill="%23143222" opacity="0.25"><circle cx="10" cy="10" r="1.5"/><circle cx="70" cy="60" r="1"/><circle cx="100" cy="20" r="1.2"/></g></svg>');
+         background-repeat:repeat;
+         color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0b1220 0%, #0b1220cc 100%);backdrop-filter:blur(6px);z-index:10;border-bottom:1px solid var(--border)}
+    .wrap{max-width:1000px;margin:0 auto;padding:12px}
+    h1{font-size:22px;margin:0 0 6px;display:flex;gap:10px;align-items:center}
+    .subtitle{color:var(--muted);font-size:12px}
+    .editable{background:#0a1422;border:1px dashed var(--border);color:var(--text);padding:4px 8px;border-radius:10px}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .tab-btn{border:1px solid var(--border);background:#0a1422;color:var(--text);padding:8px 12px;border-radius:999px;cursor:pointer}
+    .tab-btn.active{background:var(--accent);color:#041309;border-color:#0e9f4a}
+
+    main{max-width:1000px;margin:12px auto;padding:12px}
+    .card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 6px 16px #00000033}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    .row > *{flex:1 1 140px}
+    input, select, textarea{background:#0a1422;border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:10px;width:100%}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid var(--border);padding:10px;text-align:left}
+    th{font-size:12px;color:var(--muted);font-weight:600}
+    tbody tr:nth-child(odd) td{background:#0c1829}
+    tr:hover td{background:#0b122022}
+    .btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:#0a1422;color:var(--text);padding:8px 12px;border-radius:12px;cursor:pointer;transition:transform .04s ease}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{background:var(--accent);color:#03150a;border-color:#0e9f4a}
+    .btn.warn{background:var(--accent-2);color:#1a1203;border-color:#b45309}
+    .btn.danger{background:var(--danger);color:#2b0a0a;border-color:#b91c1c}
+    .btn.small{padding:6px 10px;border-radius:10px;font-size:13px}
+    .right{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+    .muted{color:var(--muted);font-size:12px}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--badge);border:1px solid var(--border);font-size:12px}
+    .grid-2{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:760px){.grid-2{grid-template-columns:1fr 1fr}}
+
+    @media print{
+      header, nav, .no-print{display:none!important}
+      body{background:white;color:black}
+      .card{border:0;box-shadow:none}
+      a{color:black}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>🛍️ <span contenteditable id="storeName" class="editable">Mon Magasin</span></h1>
+      <div class="subtitle">Nom de l'entreprise : <span contenteditable id="companyName" class="editable">(à renseigner)</span></div>
+      <div class="muted">Touchez un texte pour le modifier. Données stockées sur l'appareil (hors‑ligne).</div>
+      <nav>
+        <button class="tab-btn active" data-tab="accueil">Accueil</button>
+        <button class="tab-btn" data-tab="stock">📦 Stock</button>
+        <button class="tab-btn" data-tab="compta">💵 Comptabilité</button>
+        <button class="tab-btn" data-tab="bilan">📊 Bilan & Export</button>
+        <button class="tab-btn" data-tab="sauvegarde">☁️ Sauvegarde</button>
+      </nav>
+    </div>
+    <!-- Bandeau installation PWA -->
+    <div id="installBanner" class="no-print" style="display:none; position:sticky; top:60px; z-index:20;">
+      <div class="wrap">
+        <div class="card" style="display:flex; gap:8px; align-items:center;">
+          <span>📲 Installer <b>Gestion Magasin</b> sur l’écran d’accueil&nbsp;?</span>
+          <div class="right" style="margin-left:auto">
+            <button id="btnInstall" class="btn primary">Installer</button>
+            <button id="btnDismiss" class="btn">Plus tard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ACCUEIL -->
+    <section class="card" data-page="accueil">
+      <p>Bienvenue dans la mini‑appli <b>Gestion Magasin</b> optimisée pour tablette.</p>
+      <div id="dashboard" class="grid-2">
+        <div class="card">
+          <h3>📈 Tableau de bord (mois en cours)</h3>
+          <p>Ventes (CA): <b id="dashCA">0.00</b></p>
+          <p>Dépenses: <b id="dashDep">0.00</b></p>
+          <p>Bénéfice net: <b id="dashBenef">0.00</b></p>
+        </div>
+        <div class="card">
+          <h3>📦 Stock</h3>
+          <p>Articles en stock: <b id="dashItems">0</b></p>
+          <p>Valeur du stock: <b id="dashStockValue">0.00</b></p>
+        </div>
+      </div>
+      <div id="backupAlert" class="card no-print" style="display:none">
+        <h3>💾 Sauvegarde recommandée</h3>
+        <p class="muted">Il semble que votre dernière sauvegarde date de plus de 7 jours.</p>
+        <button class="btn" id="quickBackup">Exporter toutes les données (JSON)</button>
+      </div>
+      <div class="row no-print">
+        <button class="btn primary" data-goto="stock">Aller au Stock</button>
+        <button class="btn" data-goto="compta">Aller à la Comptabilité</button>
+        <button class="btn" data-goto="bilan">Voir le Bilan & Export</button>
+      </div>
+    </section>
+
+    <!-- STOCK -->
+    <section class="card" data-page="stock" hidden>
+      <div class="row">
+        <input id="pName" placeholder="Nom du produit" />
+        <input id="pSKU" placeholder="SKU / Référence (facultatif)" />
+      </div>
+      <div class="row">
+        <select id="pUnit">
+          <option value="piece">pièce(s)</option>
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+          <option value="L">L</option>
+        </select>
+        <input id="pBuy" type="number" min="0" step="0.01" placeholder="Prix d'achat (par unité)" />
+        <input id="pSell" type="number" min="0" step="0.01" placeholder="Prix de vente (par unité)" />
+        <input id="pQty" type="number" min="0" step="0.01" placeholder="Quantité en stock" />
+      </div>
+      <div class="row">
+        <input id="lotTotal" type="number" min="0" step="0.01" placeholder="Achat LOT — Montant total (ex: 75.00)" />
+        <input id="lotQty" type="number" min="0" step="0.01" placeholder="Achat LOT — Quantité (ex: 10 kg)" />
+        <input id="lotSell" type="number" min="0" step="0.01" placeholder="(Optionnel) Vente /u après ce lot (ex: 15.00)" />
+        <button class="btn" id="addLot">Ajouter le lot ➜ calcule achat/u & augmente le stock</button>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="addProduct">Ajouter / Mettre à jour</button>
+        <button class="btn warn" id="clearInputs">Vider les champs</button>
+      </div>
+
+      <div class="right" style="margin-top:8px">
+        <span class="pill">Valeur du stock: <b id="stockValue">0.00</b></span>
+        <button class="btn small" id="exportProductsCsv">Exporter Produits (CSV)</button>
+      </div>
+
+      <table id="productsTable" style="margin-top:8px">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>SKU</th>
+            <th>Unité</th>
+            <th>Achat /u</th>
+            <th>Vente /u</th>
+            <th>Qté</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- COMPTABILITÉ -->
+    <section class="card" data-page="compta" hidden>
+      <div class="row">
+        <select id="tType">
+          <option value="vente">Vente</option>
+          <option value="dépense">Dépense</option>
+          <option value="ajustement">Ajustement de stock</option>
+        </select>
+        <input id="tDate" type="date" />
+      </div>
+
+      <div class="row" id="venteRow">
+        <select id="tProduct"></select>
+        <input id="tQty" type="number" min="0" step="0.01" placeholder="Quantité" />
+        <input id="tUnit" type="number" min="0" step="0.01" placeholder="Prix unitaire (vente)" />
+      </div>
+      <div class="row">
+        <input id="tTotalSale" type="number" min="0" step="0.01" placeholder="(Optionnel) Total de la vente — si renseigné, calcule le prix unitaire = Total / Quantité" />
+      </div>
+      <div class="row" id="venteExtra">
+        <input id="tSeller" placeholder="Vendeur (facultatif)" />
+        <input id="tCustomer" placeholder="Client (facultatif)" />
+      </div>
+
+      <div class="row" id="depenseRow" hidden>
+        <input id="tLabel" placeholder="Libellé de la dépense" />
+        <input id="tTotal" type="number" min="0" step="0.01" placeholder="Montant total" />
+      </div>
+
+      <div class="row" id="ajustRow" hidden>
+        <select id="aProduct"></select>
+        <input id="aDelta" type="number" step="0.01" placeholder="Δ quantité (+/-)" />
+        <input id="aReason" placeholder="Raison (ex: inventaire, casse)" />
+      </div>
+
+      <div class="row">
+        <textarea id="tNote" placeholder="Notes (facultatif)"></textarea>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" id="addTxn">Enregistrer</button>
+        <button class="btn warn" id="exportTxnsCsv">Exporter Mouvements (CSV)</button>
+      </div>
+
+      <div class="row no-print">
+        <select id="filterType">
+          <option value="">Tous types</option>
+          <option value="vente">Vente</option>
+          <option value="dépense">Dépense</option>
+          <option value="ajustement">Ajustement</option>
+        </select>
+        <select id="filterProduct"><option value="">Tous produits</option></select>
+      </div>
+
+      <table id="txTable" style="margin-top:8px">
+        <thead>
+          <tr>
+            <th>Date</th><th>Type</th><th>Détail</th><th>Qté</th><th>PU</th><th>Total</th><th>Vendeur</th><th>Client</th><th>Notes</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- BILAN & EXPORT -->
+    <section class="card" data-page="bilan" hidden>
+      <div class="row">
+        <input id="fromDate" type="date" />
+        <input id="toDate" type="date" />
+        <button class="btn" id="calcBilan">Calculer le bilan</button>
+        <button class="btn warn" id="exportBilanCsv">Télécharger Bilan (CSV)</button>
+        <button class="btn" onclick="window.print()">Imprimer</button>
+      </div>
+      <div id="bilanView" class="grid-2" style="margin-top:8px">
+        <div class="card">
+          <h3>Résumé</h3>
+          <div class="muted" id="bilanPeriod">Période : —</div>
+          <p>Entreprise : <b id="bilanCompany">—</b></p>
+          <p>Chiffre d'affaires (ventes): <b id="ca">0.00</b></p>
+          <p>Coût des marchandises vendues (CMV): <b id="cmv">0.00</b></p>
+          <p>Dépenses: <b id="dep">0.00</b></p>
+          <hr style="border:0;border-top:1px solid var(--border)">
+          <p>Bénéfice net: <b id="benef">0.00</b></p>
+        </div>
+        <div class="card">
+          <h3>Détails ventes</h3>
+          <div id="ventesList" class="muted">—</div>
+        </div>
+        <div class="card">
+          <h3>🏆 Top ventes (période)</h3>
+          <div id="topList" class="muted">—</div>
+          <div class="right no-print" style="margin-top:8px">
+            <button class="btn small" id="exportTopCsv">Exporter Top ventes (CSV)</button>
+          </div>
+        </div>
+      </div>
+      <div class="right no-print">
+        <button class="btn small" id="exportAllJson">Exporter SAUVEGARDE (JSON)</button>
+        <label class="btn small" for="importJson">Importer SAUVEGARDE (JSON)</label>
+        <input id="importJson" type="file" accept="application/json" style="display:none" />
+      </div>
+    </section>
+
+    <!-- SAUVEGARDE RAPIDE -->
+    <section class="card" data-page="sauvegarde" hidden>
+      <p>Vous pouvez exporter toutes les données en un fichier <b>JSON</b> (sauvegarde complète) ou télécharger des <b>CSV</b> séparés.</p>
+      <div class="row">
+        <button class="btn" id="btnBackupJson">Exporter toutes les données (JSON)</button>
+        <button class="btn" id="btnExportCSVProducts">Produits (CSV)</button>
+        <button class="btn" id="btnExportCSVTxns">Mouvements (CSV)</button>
+      </div>
+      <div class="row">
+        <label class="btn" for="restoreJson">Importer sauvegarde (JSON)</label>
+        <input id="restoreJson" type="file" accept="application/json" style="display:none" />
+        <button class="btn danger" id="wipeAll">⚠️ Effacer toutes les données</button>
+      </div>
+      <p class="muted">Astuce : effectuez une sauvegarde JSON chaque semaine et envoyez-la par e‑mail ou sur Google Drive.</p>
+
+      <details class="no-print"><summary>🧪 Résultats des tests internes</summary>
+        <pre id="testOutput" class="muted" style="white-space:pre-wrap"></pre>
+      </details>
+    </section>
+  </main>
+
+  <script>
+    // ====== PWA: service worker + install prompt (version hébergée) ======
+    (function(){
+      // Enregistrement du Service Worker (HTTPS/GitHub Pages requis)
+      if ((location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator){
+        navigator.serviceWorker.register('./service-worker.js', {scope:'./'}).catch(()=>{});
+      }
+
+      // Bandeau d'installation (Chrome déclenche beforeinstallprompt en HTTPS)
+      let deferredPrompt = null;
+      const banner = document.getElementById('installBanner');
+      const btnInstall = document.getElementById('btnInstall');
+      const btnDismiss = document.getElementById('btnDismiss');
+
+      window.addEventListener('beforeinstallprompt', (e)=>{
+        e.preventDefault();
+        deferredPrompt = e;
+        if(banner) banner.style.display = '';
+      });
+
+      if(btnDismiss){ btnDismiss.addEventListener('click', ()=>{ if(banner) banner.style.display='none'; }); }
+      if(btnInstall){ btnInstall.addEventListener('click', async ()=>{
+        if(deferredPrompt){
+          deferredPrompt.prompt();
+          await deferredPrompt.userChoice;
+          deferredPrompt = null;
+          if(banner) banner.style.display = 'none';
+        } else {
+          alert("Pour installer : ouvrez cette page depuis une URL HTTPS (ex: GitHub Pages). Le bouton d'installation apparaîtra.");
+        }
+      }); }
+    })();
+    // ====== Stockage ======
+    const LS_KEY = 'miniShop.v1';
+    function load(){
+      const raw = localStorage.getItem(LS_KEY);
+      if(!raw) return {storeName:'Mon Magasin', companyName:'', lastBackup:0, products:[], txns:[]};
+      try { const d = JSON.parse(raw); return {lastBackup:0, companyName:'', ...d}; } catch(e){ return {storeName:'Mon Magasin', companyName:'', lastBackup:0, products:[], txns:[]}; }
+    }
+    function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+
+    let state = load();
+
+    // ====== Helpers ======
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>Array.from(document.querySelectorAll(q));
+    const fmt = (n)=> (Number(n||0)).toFixed(2);
+    const today = ()=> new Date().toISOString().slice(0,10);
+    const uid = ()=> Math.random().toString(36).slice(2,9);
+
+    const unitLabel = (u)=> ({piece:'pièce', kg:'kg', g:'g', L:'L'}[u]||u||'pièce');
+    const unitStep  = (u)=> (u==='kg'||u==='L')?0.01: (u==='g'?1:1);
+
+    function blobDownload(filename, mime, content){
+      const b = new Blob([content], {type: mime});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+    }
+
+    function toCSV(rows){
+      if(!rows.length) return '';
+      const cols = Object.keys(rows[0]);
+      const esc = (v)=>(''+(v??'')).replaceAll('"','""');
+      const head = cols.map(c=>'"'+esc(c)+'"').join(',');
+      const lines = rows.map(r=> cols.map(c=>'"'+esc(r[c])+'"').join(','));
+      return [head, ...lines].join('\n');
+    }
+
+    function parseDate(d){ return new Date(d + 'T00:00:00'); }
+
+    // ====== UI: navigation ======
+    $$(".tab-btn").forEach(b=> b.addEventListener('click',()=>showTab(b.dataset.tab)) );
+    $$('[data-goto]').forEach(b=> b.addEventListener('click',()=>showTab(b.dataset.goto)) );
+
+    function showTab(id){
+      $$(".tab-btn").forEach(b=> b.classList.toggle('active', b.dataset.tab===id));
+      $$('[data-page]').forEach(s=> s.hidden = s.dataset.page!==id);
+    }
+
+    // ====== Store & company ======
+    const storeNameEl = $('#storeName');
+    const companyNameEl = $('#companyName');
+    storeNameEl.textContent = state.storeName || 'Mon Magasin';
+    companyNameEl.textContent = state.companyName || '(à renseigner)';
+    let saveNameTO, saveCompanyTO;
+    storeNameEl.addEventListener('input', ()=>{
+      clearTimeout(saveNameTO);
+      saveNameTO = setTimeout(()=>{ state.storeName = storeNameEl.textContent.trim()||'Mon Magasin'; save(); }, 400);
+    });
+    companyNameEl.addEventListener('input', ()=>{
+      clearTimeout(saveCompanyTO);
+      saveCompanyTO = setTimeout(()=>{ state.companyName = companyNameEl.textContent.trim(); save(); }, 400);
+    });
+
+    // ====== STOCK ======
+    const pName=$('#pName'), pSKU=$('#pSKU'), pUnit=$('#pUnit'), pBuy=$('#pBuy'), pSell=$('#pSell'), pQty=$('#pQty');
+    pUnit.addEventListener('change', ()=>{ pQty.step = unitStep(pUnit.value); });
+    pQty.step = unitStep(pUnit.value);
+    $('#clearInputs').onclick=()=>[pName,pSKU,pBuy,pSell,pQty].forEach(i=>i.value='');
+
+    // Calcul coût moyen pondéré et ajout de lot
+    function weightedAvgCost(oldQty, oldBuy, addQty, addUnitBuy){
+      oldQty = Number(oldQty||0); oldBuy = Number(oldBuy||0); addQty = Number(addQty||0); addUnitBuy = Number(addUnitBuy||0);
+      if(oldQty + addQty === 0) return 0;
+      return ((oldQty*oldBuy) + (addQty*addUnitBuy)) / (oldQty + addQty);
+    }
+
+    $('#addLot').onclick = ()=>{
+      const name = pName.value.trim(); if(!name) return alert('Indique d\'abord le nom du produit.');
+      const sku = pSKU.value.trim();
+      const unit = pUnit.value||'piece';
+      const lotTotal = parseFloat($('#lotTotal').value||0);
+      const lotQty = parseFloat($('#lotQty').value||0);
+      const lotSell = parseFloat($('#lotSell').value||0);
+      if(lotTotal<=0 || lotQty<=0) return alert('Remplis le montant total du lot et la quantité.');
+      const lotUnitBuy = lotTotal/lotQty; // prix d'achat par unité dérivé du lot
+      let prod = state.products.find(p=> (p.name.toLowerCase()===name.toLowerCase() && (!sku || p.sku===sku)) || (sku && p.sku===sku));
+      if(!prod){
+        // crée le produit avec coût unitaire du lot
+        prod = {id:uid(), name, sku, unit, buy:lotUnitBuy, sell:(lotSell>0?lotSell:parseFloat(pSell.value||0)), qty:lotQty, createdAt:Date.now()};
+        state.products.push(prod);
+      } else {
+        // met à jour coût moyen pondéré et stock
+        const newBuy = weightedAvgCost(prod.qty, prod.buy, lotQty, lotUnitBuy);
+        prod.buy = newBuy;
+        prod.qty = Number((prod.qty||0) + lotQty);
+        prod.unit = unit; // garde l'unité choisie si on l'a précisée
+        if(lotSell>0) prod.sell = lotSell; // possibilité de définir/mettre à jour le prix de vente unitaire depuis le lot
+        prod.updatedAt = Date.now();
+      }
+      // reflète dans les champs
+      pBuy.value = (prod.buy||lotUnitBuy).toFixed(2);
+      pSell.value = (prod.sell||0).toFixed(2);
+      pQty.value = (prod.qty||lotQty).toFixed(2);
+      save(); renderProducts(); renderTxnProducts();
+      alert(`Lot ajouté : ${lotQty} ${unitLabel(unit)} pour ${lotTotal.toFixed(2)} → achat/unité = ${lotUnitBuy.toFixed(2)}${lotSell>0?` · vente/unité = ${lotSell.toFixed(2)}`:''}`);
+      $('#lotTotal').value=''; $('#lotQty').value=''; $('#lotSell').value='';
+    };
+
+    $('#addProduct').onclick=()=>{
+      const name=pName.value.trim(); if(!name) return alert('Nom requis');
+      const sku=pSKU.value.trim();
+      const unit=pUnit.value||'piece';
+      const buy=parseFloat(pBuy.value||0);
+      const sell=parseFloat(pSell.value||0);
+      const qty=parseFloat(pQty.value||0);
+      // Existe ? maj sinon ajout
+      let prod = state.products.find(p=> (p.name.toLowerCase()===name.toLowerCase() && (!sku || p.sku===sku)) || (sku && p.sku===sku));
+      if(prod){
+        prod.name=name; prod.sku=sku; prod.unit=unit; prod.buy=buy; prod.sell=sell; prod.qty=qty; prod.updatedAt=Date.now();
+      } else {
+        prod={id:uid(), name, sku, unit, buy, sell, qty, createdAt:Date.now()};
+        state.products.push(prod);
+      }
+      save();
+      renderProducts(); renderTxnProducts();
+      $('#clearInputs').click();
+    };
+
+    function renderProducts(){
+      const tbody = $('#productsTable tbody');
+      tbody.innerHTML = '';
+      let total=0;
+      state.products.sort((a,b)=>a.name.localeCompare(b.name));
+      for(const p of state.products){
+        const u = unitLabel(p.unit||'piece');
+        total += (p.buy||0) * (p.qty||0);
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${p.name||''}</td>
+          <td>${p.sku||''}</td>
+          <td>${u}</td>
+          <td>${fmt(p.buy)}</td>
+          <td>${fmt(p.sell)}</td>
+          <td>${fmt(p.qty||0)} ${u}</td>
+          <td>
+            <button class="btn small" data-act="edit">Éditer</button>
+            <button class="btn small danger" data-act="del">Suppr.</button>
+          </td>`;
+        tr.querySelector('[data-act="edit"]').onclick=()=>{
+          pName.value=p.name||''; pSKU.value=p.sku||''; pUnit.value=p.unit||'piece'; pQty.step = unitStep(p.unit||'piece'); pBuy.value=p.buy||0; pSell.value=p.sell||0; pQty.value=p.qty||0; window.scrollTo({top:0,behavior:'smooth'});
+        };
+        tr.querySelector('[data-act="del"]').onclick=()=>{
+          if(confirm('Supprimer ce produit ?')){ state.products = state.products.filter(x=>x!==p); save(); renderProducts(); renderTxnProducts(); }
+        };
+        tbody.appendChild(tr);
+      }
+      $('#stockValue').textContent = fmt(total);
+    }
+
+    $('#exportProductsCsv').onclick=()=>{
+      const rows = state.products.map(p=>({id:p.id,name:p.name,sku:p.sku,unit:unitLabel(p.unit||'piece'),buy:p.buy,sell:p.sell,qty:p.qty}));
+      blobDownload(`produits_${today()}.csv`, 'text/csv;charset=utf-8', toCSV(rows));
+    };
+
+    // ====== COMPTA (Transactions) ======
+    const tType=$('#tType'), tDate=$('#tDate');
+    tDate.value = today();
+
+    function renderTxnProducts(){
+      const sel = $('#tProduct'); if(sel){ sel.innerHTML=''; }
+      const aSel = $('#aProduct'); if(aSel){ aSel.innerHTML=''; }
+      const fSel = $('#filterProduct'); if(fSel){ fSel.innerHTML='<option value="">Tous produits</option>'; }
+      for(const p of state.products){
+        const u = unitLabel(p.unit||'piece');
+        if(sel){ const o=document.createElement('option'); o.value=p.id; o.textContent=`${p.name} (${fmt(p.qty||0)} ${u} en stock)`; o.dataset.unit=p.unit||'piece'; sel.appendChild(o); }
+        if(aSel){ const o2=document.createElement('option'); o2.value=p.id; o2.textContent=`${p.name} (${fmt(p.qty||0)} ${u})`; o2.dataset.unit=p.unit||'piece'; aSel.appendChild(o2); }
+        if(fSel){ const o3=document.createElement('option'); o3.value=p.id; o3.textContent=p.name; fSel.appendChild(o3); }
+      }
+      // Met à jour les pas de saisie selon le produit sélectionné
+      onTxnProductChange(); onAjustProductChange();
+    }
+
+    function onTxnProductChange(){
+      const pid = $('#tProduct')?.value; const prod = state.products.find(p=>p.id===pid);
+      if(prod){
+        const u = unitLabel(prod.unit||'piece');
+        $('#tQty').step = unitStep(prod.unit||'piece');
+        $('#tQty').placeholder = `Quantité (${u})`;
+        $('#tUnit').placeholder = `Prix unitaire (vente) (par ${u})`;
+        $('#tTotalSale').placeholder = `(Optionnel) Total de la vente en ${u}`;
+        // Pré-remplit le prix de vente avec celui du stock (modifiable)
+        if(typeof prod.sell === 'number' && !isNaN(prod.sell) && prod.sell>0){
+          $('#tUnit').value = Number(prod.sell).toFixed(2);
+        }
+      }
+    }
+    function onAjustProductChange(){
+      const pid = $('#aProduct')?.value; const prod = state.products.find(p=>p.id===pid);
+      if(prod){
+        const u = unitLabel(prod.unit||'piece');
+        $('#aDelta').step = unitStep(prod.unit||'piece');
+        $('#aDelta').placeholder = `Δ quantité (+/-) (${u})`;
+      }
+    }
+    $('#tProduct').addEventListener('change', onTxnProductChange);
+    $('#aProduct').addEventListener('change', onAjustProductChange);
+
+    function updateTxnTypeUI(){
+      const type=tType.value;
+      $('#venteRow').hidden = type!=='vente';
+      $('#depenseRow').hidden = type!=='dépense';
+      $('#ajustRow').hidden = type!=='ajustement';
+    }
+    tType.onchange=updateTxnTypeUI; updateTxnTypeUI();
+
+    // Remplissage auto du prix unitaire si on saisit un TOTAL de vente
+    $('#tTotalSale').addEventListener('input', ()=>{
+      const q = parseFloat($('#tQty').value||0); const tot = parseFloat($('#tTotalSale').value||0);
+      if(q>0 && tot>0){ $('#tUnit').value = (tot/q).toFixed(2); }
+    });
+
+    $('#addTxn').onclick=()=>{
+      const type=tType.value; const date=tDate.value||today();
+      if(type==='vente'){
+        const pid=$('#tProduct').value; const qty=parseFloat($('#tQty').value||0);
+        const totalOverride = parseFloat($('#tTotalSale').value||0);
+        let unitPrice=parseFloat($('#tUnit').value||0);
+        if(totalOverride>0 && qty>0){ unitPrice = totalOverride/qty; }
+        const seller = $('#tSeller').value.trim(); const customer = $('#tCustomer').value.trim();
+        if(!pid||qty<=0) return alert('Sélectionnez un produit et une quantité.');
+        const prod = state.products.find(p=>p.id===pid);
+        if(!prod) return alert('Produit introuvable.');
+        if((prod.qty||0) < qty) return alert('Stock insuffisant.');
+        prod.qty = Number((prod.qty||0) - qty);
+        const cogsPerUnit = Number(prod.buy||0);
+        const total = unitPrice*qty;
+        state.txns.push({id:uid(), type:'vente', productId:pid, productName:prod.name, productUnit:prod.unit||'piece', qty, unitPrice, cogsPerUnit, total, date, seller, customer, note:$('#tNote').value||''});
+        save(); renderProducts(); renderTxns(); renderTxnProducts(); updateDashboard();
+        $('#tQty').value=''; $('#tUnit').value=''; $('#tTotalSale').value=''; $('#tNote').value=''; $('#tSeller').value=''; $('#tCustomer').value='';
+      } else if(type==='dépense'){
+        const label=$('#tLabel').value.trim(); const total=parseFloat($('#tTotal').value||0);
+        if(!label||total<=0) return alert('Libellé et montant requis.');
+        state.txns.push({id:uid(), type:'dépense', label, total, date, note:$('#tNote').value||''});
+        save(); renderTxns(); updateDashboard(); $('#tLabel').value=''; $('#tTotal').value=''; $('#tNote').value='';
+      } else {
+        const pid=$('#aProduct').value; const delta=parseFloat($('#aDelta').value||0); const reason=$('#aReason').value.trim();
+        if(!pid||!delta) return alert('Produit et variation requis.');
+        const prod = state.products.find(p=>p.id===pid);
+        prod.qty = Number((prod.qty||0) + delta);
+        state.txns.push({id:uid(), type:'ajustement', productId:pid, productName:prod.name, productUnit:prod.unit||'piece', delta, reason, date});
+        save(); renderProducts(); renderTxns(); renderTxnProducts(); updateDashboard(); $('#aDelta').value=''; $('#aReason').value='';
+      }
+    };
+
+    function renderTxns(){
+      const tbody=$('#txTable tbody'); if(!tbody) return; tbody.innerHTML='';
+      const fType = ($('#filterType') && $('#filterType').value) || '';
+      const fProd = ($('#filterProduct') && $('#filterProduct').value) || '';
+      const rows=[...state.txns].sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+      for(const t of rows){
+        if(fType && t.type!==fType) continue;
+        if(fProd && t.productId!==fProd) continue;
+        const tr=document.createElement('tr');
+        let detail=''; let q=''; let pu=''; let seller=t.seller||''; let customer=t.customer||''; let u='';
+        if(t.type==='vente') { detail=t.productName; u=unitLabel(t.productUnit||'piece'); q=`${fmt(t.qty)} ${u}`; pu=fmt(t.unitPrice); }
+        if(t.type==='dépense') { detail=t.label; q='—'; pu='—'; }
+        if(t.type==='ajustement') { detail=(t.reason||'Ajustement')+ ' · '+(t.productName||''); u=unitLabel(t.productUnit||'piece'); const d=t.delta||0; q=(d>0?'+':'')+fmt(d)+' '+u; pu='—'; }
+        tr.innerHTML = `<td>${t.date||''}</td><td>${t.type}</td><td>${detail}</td><td>${q}</td><td>${pu}</td><td>${fmt(t.total||0)}</td><td>${seller}</td><td>${customer}</td><td>${t.note||''}</td><td><button class="btn small danger">Suppr.</button></td>`;
+        tr.querySelector('button').onclick=()=>{ if(confirm('Supprimer ce mouvement ?')){ state.txns = state.txns.filter(x=>x!==t); save(); renderTxns(); updateDashboard(); } };
+        tbody.appendChild(tr);
+      }
+    }
+
+    $('#exportTxnsCsv').onclick=()=>{
+      const rows = state.txns.map(t=>({
+        id:t.id,date:t.date,type:t.type,productId:t.productId||'',productName:t.productName||t.label||'',productUnit:unitLabel(t.productUnit||'piece'),qty:t.qty||t.delta||'',unitPrice:t.unitPrice||'',cogsPerUnit:t.cogsPerUnit||'',total:t.total||'',seller:t.seller||'',customer:t.customer||'',note:t.note||t.reason||''
+      }));
+      blobDownload(`mouvements_${today()}.csv`, 'text/csv;charset=utf-8', toCSV(rows));
+    };
+
+    // ====== BILAN (UNE SEULE DÉCLARATION) ======
+    function computeBilan(d1, d2){
+      const inRange = (d)=>{ const x = parseDate(d); return (!d1 || x>=d1) && (!d2 || x<=d2); };
+      let ca=0, cmv=0, dep=0; const ventes=[]; const agg={};
+      for(const t of state.txns){
+        if(!t.date) continue; if(!inRange(t.date)) continue;
+        if(t.type==='vente'){
+          const total=t.total||((t.unitPrice||0)*(t.qty||0));
+          ca += total; cmv += (t.cogsPerUnit||0)*(t.qty||0);
+          const u=unitLabel(t.productUnit||'piece');
+          ventes.push({date:t.date, produit:t.productName, qty:t.qty, unit:u, pu:t.unitPrice, total});
+          const k=t.productName||'—';
+          agg[k] = agg[k]||{produit:k, unit:u, qty:0, ca:0};
+          agg[k].qty += (t.qty||0);
+          agg[k].ca  += total;
+        }
+        if(t.type==='dépense') dep += (t.total||0);
+      }
+      const benef = ca - cmv - dep;
+      const top = Object.values(agg).sort((a,b)=> b.qty - a.qty || b.ca - a.ca);
+      return {ca, cmv, dep, benef, ventes, top};
+    }
+
+    $('#calcBilan').onclick=()=>{
+      const f=$('#fromDate').value?parseDate($('#fromDate').value):null;
+      const t=$('#toDate').value?parseDate($('#toDate').value):null;
+      const b=computeBilan(f,t);
+      $('#bilanPeriod').textContent = `Période : ${$('#fromDate').value||'—'} → ${$('#toDate').value||'—'}`;
+      $('#bilanCompany').textContent = state.companyName || '(non renseigné)';
+      $('#ca').textContent=fmt(b.ca); $('#cmv').textContent=fmt(b.cmv); $('#dep').textContent=fmt(b.dep); $('#benef').textContent=fmt(b.benef);
+      const list = b.ventes.map(v=>`${v.date} · ${v.produit} ×${fmt(v.qty)} ${v.unit} @ ${fmt(v.pu)} = ${fmt(v.total)}`).join('<br>');
+      $('#ventesList').innerHTML = list || '—';
+      const topHtml = (b.top.slice(0,5).map((x,i)=>`#${i+1} ${x.produit} · ${fmt(x.qty)} ${x.unit||''} · CA ${fmt(x.ca)}`).join('<br>')) || '—';
+      $('#topList').innerHTML = topHtml;
+      window.__lastBilan = {from:$('#fromDate').value, to:$('#toDate').value, company: state.companyName||'', ...b};
+    };
+
+    $('#exportBilanCsv').onclick=()=>{
+      const f=$('#fromDate').value?parseDate($('#fromDate').value):null;
+      const t=$('#toDate').value?parseDate($('#toDate').value):null;
+      const b=computeBilan(f,t);
+      const rows=[
+        {poste:'Entreprise', montant:(state.companyName||'')},
+        {poste:'Période', montant:`${$('#fromDate').value||'debut'} → ${$('#toDate').value||'fin'}`},
+        {poste:'Chiffre d\'affaires', montant:fmt(b.ca)},
+        {poste:'CMV', montant:fmt(b.cmv)},
+        {poste:'Dépenses', montant:fmt(b.dep)},
+        {poste:'Bénéfice net', montant:fmt(b.benef)}
+      ];
+      const ventes = (b.ventes||[]).map(v=>({poste:`Vente · ${v.date} · ${v.produit} ×${fmt(v.qty)} ${v.unit} @ ${v.pu}`, montant:fmt(v.total)}));
+      const csv = toCSV(rows.concat([{poste:'-- Détails ventes --', montant:''}], ventes));
+      const name = (state.companyName||'bilan').replace(/[^a-z0-9_-]+/gi,'_');
+      blobDownload(`${name}_bilan_${$('#fromDate').value||'debut'}_${$('#toDate').value||'fin'}.csv`, 'text/csv;charset=utf-8', csv);
+    };
+
+    $('#exportTopCsv').onclick=()=>{
+      const f=$('#fromDate').value?parseDate($('#fromDate').value):null;
+      const t=$('#toDate').value?parseDate($('#toDate').value):null;
+      const b=computeBilan(f,t);
+      const rows = b.top.map((x,i)=>({rang:i+1, produit:x.produit, quantite:fmt(x.qty), unite:x.unit||'', chiffre_affaires:fmt(x.ca)}));
+      const name = (state.companyName||'top').replace(/[^a-z0-9_-]+/gi,'_');
+      blobDownload(`${name}_top_ventes_${$('#fromDate').value||'debut'}_${$('#toDate').value||'fin'}.csv`, 'text/csv;charset=utf-8', toCSV(rows));
+    };
+
+    // ====== EXPORT / IMPORT JSON (sauvegarde complète) ======
+    function exportJSON(){
+      const payload = JSON.stringify(state, null, 2);
+      blobDownload(`sauvegarde_${today()}.json`, 'application/json;charset=utf-8', payload);
+    }
+
+    $('#exportAllJson').onclick=exportJSON;
+    $('#btnBackupJson').onclick=exportJSON;
+
+    $('#btnExportCSVProducts').onclick=()=>$('#exportProductsCsv').click();
+    $('#btnExportCSVTxns').onclick=()=>$('#exportTxnsCsv').click();
+
+    $('#importJson').onchange = (e)=> handleImport(e.target.files?.[0]);
+    $('#restoreJson').onchange = (e)=> handleImport(e.target.files?.[0]);
+
+    function handleImport(file){
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try{
+          const data = JSON.parse(reader.result);
+          if(!data || !Array.isArray(data.products) || !Array.isArray(data.txns)) throw new Error('Fichier invalide');
+          // rétro-compatibilité unité
+          data.products = data.products.map(p=> ({unit:'piece', ...p}));
+          data.txns = data.txns.map(t=> (t.type==='vente'||t.type==='ajustement')? ({productUnit:'piece', ...t}) : t);
+          state = {storeName: data.storeName||state.storeName, companyName: data.companyName||state.companyName||'', lastBackup: data.lastBackup||0, products: data.products, txns: data.txns};
+          save();
+          storeNameEl.textContent = state.storeName; companyNameEl.textContent = state.companyName||'(à renseigner)';
+          renderProducts(); renderTxnProducts(); renderTxns(); updateDashboard();
+          alert('Import réussi ✔️');
+        }catch(err){ alert('Échec de l\'import : '+err.message); }
+      };
+      reader.readAsText(file);
+    }
+
+    // ====== Wipe all ======
+    $('#wipeAll').onclick=()=>{
+      if(confirm('Effacer TOUTES les données ? Cette action est irréversible.')){
+        state = {storeName:'Mon Magasin', companyName:'', lastBackup:0, products:[], txns:[]};
+        save(); renderProducts(); renderTxnProducts(); renderTxns(); updateDashboard(); storeNameEl.textContent=state.storeName; companyNameEl.textContent='(à renseigner)'; alert('Données effacées.');
+      }
+    };
+
+    // ====== Tableau de bord & Sauvegarde ======
+    function monthRange(){
+      const d=new Date(); const y=d.getFullYear(); const m=d.getMonth();
+      return {from:new Date(y,m,1), to:new Date(y,m+1,0)};
+    }
+    function updateDashboard(){
+      const r=monthRange(); const b=computeBilan(r.from,r.to);
+      $('#dashCA').textContent=fmt(b.ca); $('#dashDep').textContent=fmt(b.dep); $('#dashBenef').textContent=fmt(b.benef);
+      const items = state.products.reduce((s,p)=> s + (p.qty||0), 0);
+      const stockVal = state.products.reduce((s,p)=> s + (p.buy||0)*(p.qty||0), 0);
+      $('#dashItems').textContent = fmt(items); $('#dashStockValue').textContent = fmt(stockVal);
+    }
+    function updateBackupAlert(){
+      const box = document.getElementById('backupAlert'); if(!box) return;
+      const last = state.lastBackup||0; const seven = 1000*60*60*24*7;
+      box.style.display = (Date.now()-last>seven) ? '' : 'none';
+    }
+    document.getElementById('quickBackup')?.addEventListener('click', ()=>{ exportJSON(); state.lastBackup=Date.now(); save(); updateBackupAlert(); });
+
+    // Hook sur sauvegardes pour mémoriser la date
+    const oldExportJSON = exportJSON;
+    exportJSON = function(){ oldExportJSON(); state.lastBackup=Date.now(); save(); updateBackupAlert(); };
+
+    // ====== Init ======
+    function init(){
+      // Si on est en contexte non sécurisé (file://), on peut afficher une aide une seule fois
+      try{
+        if(location.protocol !== 'https:' && location.hostname !== 'localhost'){
+          // Pas de SW ni de prompt auto — on laisse l'app fonctionner normalement
+        }
+      }catch(_){}
+
+      renderProducts(); renderTxnProducts(); renderTxns(); updateDashboard(); updateBackupAlert();
+      runSelfTests();
+    }
+    init();
+
+    // ====== 🧪 TESTS AUTOMATIQUES ======
+    function assertEqual(actual, expected, msg){ if(JSON.stringify(actual)!==JSON.stringify(expected)) throw new Error(msg+` → reçu ${JSON.stringify(actual)} attendu ${JSON.stringify(expected)}`); }
+    function runSelfTests(){
+      // Jeu 1 : vente au kg + dépense
+      const tmp1 = {storeName:'Test', companyName:'TestCo', lastBackup:0, products:[{id:'a',name:'Mangue',unit:'kg',buy:2,sell:5,qty:10}], txns:[
+        {id:'t1',type:'vente',productId:'a',productName:'Mangue',productUnit:'kg',qty:3.5,unitPrice:5,cogsPerUnit:2,total:17.5,date:'2025-01-10'},
+        {id:'t2',type:'dépense',label:'Électricité',total:4,date:'2025-01-10'}
+      ]};
+      // Jeu 2 : lot + vente carton (10 kg à 150€) -> 15€/kg ; CMV à 7.5€/kg
+      const tmp2 = {storeName:'Test', companyName:'TestCo', lastBackup:0, products:[{id:'c',name:'Chinchar',unit:'kg',buy:7.5,sell:15,qty:10}], txns:[
+        {id:'s1',type:'vente',productId:'c',productName:'Chinchar',productUnit:'kg',qty:10,unitPrice:15,cogsPerUnit:7.5,total:150,date:'2025-02-01'}
+      ]};
+      // Jeu 3 : ajustement négatif (casse)
+      const tmp3 = {storeName:'Test', companyName:'TestCo', lastBackup:0, products:[{id:'b',name:'Farine',unit:'kg',buy:1.2,sell:2.4,qty:20}], txns:[
+        {id:'a1',type:'ajustement',productId:'b',productName:'Farine',productUnit:'kg',delta:-2,reason:'Casse',date:'2025-03-02'}
+      ]};
+      try{
+        const b1 = (function(){ const bak=state; state=tmp1; const r=computeBilan(parseDate('2025-01-01'), parseDate('2025-01-31')); state=bak; return r; })();
+        assertEqual(Number(b1.ca.toFixed(2)), 17.50, 'CA incorrect (jeu1)');
+        assertEqual(Number(b1.cmv.toFixed(2)), 7.00, 'CMV incorrect (jeu1)');
+        assertEqual(Number(b1.dep.toFixed(2)), 4.00, 'Dépenses incorrectes (jeu1)');
+        assertEqual(Number(b1.benef.toFixed(2)), 6.50, 'Bénéfice incorrect (jeu1)');
+        // Coût moyen pondéré
+        const avg = weightedAvgCost(10, 2, 10, 7.5); // 10kg à 2€/kg puis 10kg à 7.5€/kg => 4.75€/kg
+        assertEqual(Number(avg.toFixed(2)), 4.75, 'Coût moyen pondéré incorrect');
+
+        const b2 = (function(){ const bak=state; state=tmp2; const r=computeBilan(parseDate('2025-02-01'), parseDate('2025-02-28')); state=bak; return r; })();
+        assertEqual(Number(b2.ca.toFixed(2)), 150.00, 'CA incorrect (jeu2)');
+        assertEqual(Number(b2.cmv.toFixed(2)), 75.00, 'CMV incorrect (jeu2)');
+        assertEqual(Number(b2.dep.toFixed(2)), 0.00, 'Dépenses incorrectes (jeu2)');
+        assertEqual(Number(b2.benef.toFixed(2)), 75.00, 'Bénéfice incorrect (jeu2)');
+
+        // Jeu 3 : l'ajustement ne change pas CA/CMV/Dépenses
+        const b3 = (function(){ const bak=state; state=tmp3; const r=computeBilan(parseDate('2025-03-01'), parseDate('2025-03-31')); state=bak; return r; })();
+        assertEqual(Number(b3.ca.toFixed(2)), 0.00, 'CA incorrect (jeu3)');
+        assertEqual(Number(b3.cmv.toFixed(2)), 0.00, 'CMV incorrect (jeu3)');
+        assertEqual(Number(b3.dep.toFixed(2)), 0.00, 'Dépenses incorrectes (jeu3)');
+        assertEqual(Number(b3.benef.toFixed(2)), 0.00, 'Bénéfice incorrect (jeu3)');
+
+        document.getElementById('testOutput').textContent = 'OK ✅ Tests réussis (kg, dépense, coût moyen pondéré, carton 10kg, ajustement).';
+      }catch(err){ document.getElementById('testOutput').textContent = 'ÉCHEC ❌ '+err.message; }
+    }
+  </script>
+</body>
+</html>
